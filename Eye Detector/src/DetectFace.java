@@ -33,7 +33,10 @@ public class DetectFace extends Thread{
  
 	
 	
-	public static void main(String[] args) {
+	public static int[] startDetection() {
+		int[] eyeCoordinates = null;
+		
+		
 		System.loadLibrary(Core.NATIVE_LIBRARY_NAME);
 		
 		CascadeClassifier cascadeFaceClassifier = new CascadeClassifier(
@@ -51,7 +54,7 @@ public class DetectFace extends Thread{
 				Mat frameCapture = new Mat();
 				Mat leftEyeCapure = new Mat();
 				Mat rightEyeCapture = new Mat();
-				Rect roi;
+				
 				Mat zoomedMat = frameCapture;
 				
 				Mat edges = new Mat();
@@ -84,19 +87,9 @@ public class DetectFace extends Thread{
 		        //Imgproc.Canny(frameCapture, frameCapture, 30.0f, 40.0f);
 		        Imgproc.HoughCircles(frameCapture, circles, Imgproc.HOUGH_GRADIENT, 1.0,
 		                (double)frameCapture.rows()/16, 
-		                100.0, 30.0, 1, 25);
+		                100.0, 30.0, 1, 70 );
 
-		        for (int x = 0; x < circles.cols(); x++) {
-		            double[] c = circles.get(0, x);
-		            Point center = new Point(Math.round(c[0]), Math.round(c[1]));
-
-		            Imgproc.circle(frameCapture, center, 1, new Scalar(0,100,100), 3, 8, 0 );
-		            System.out.println(circles.cols());
-		            //int radius = (int) Math.round(c[2]);
-		            //Imgproc.circle(frameCapture, center, radius, new Scalar(255,0,255), 3, 8, 0 );
-		        }
-		        
-		        		
+		        eyeCoordinates = detectPupils(circles, frameCapture);
 				//Imgproc.cvtColor(frameCapture, edges, Imgproc.COLOR_BGR2GRAY);
 				//Size zoomedSize = new Size(500, 500);		        
 		        //Imgproc.resize(zoomedMat, zoomedMat, zoomedSize);
@@ -104,13 +97,15 @@ public class DetectFace extends Thread{
 		        //Imgproc.cvtColor(zoomedMat, zoomedMat,Imgproc.COLOR_RGB2GRAY );
 		        //Imgproc.Canny(zoomedMat, zoomedMat, 15, 15*3);
 		        
+		        
 				
 				PushImage(ConvertMat2Image(frameCapture));
+				return eyeCoordinates;
 				//System.out.println(String.format("%s face(FACES) %s eye(EYE) detected.", faces.toArray().length,eyes.toArray().length));
 			}
 		} else {
 			System.out.println("Video device did not open");
-			return;
+			return new int[]{0,0};
 		}
 	}
 	private static BufferedImage ConvertMat2Image(Mat cameraMaterial) {
@@ -130,7 +125,7 @@ public class DetectFace extends Thread{
 		return buffImg;
 	}
   	
-	public static void prepareWindow() {
+	private static void prepareWindow() {
 		frame = new JFrame();
 		frame.setLayout(new FlowLayout());
 		frame.setSize(700, 600);
@@ -138,7 +133,7 @@ public class DetectFace extends Thread{
 		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);	
 		
 	}
-	public static void PushImage(Image overview) {
+	private static void PushImage(Image overview) {
 		if (frame == null)
 			prepareWindow();
 		if (lbl != null)
@@ -164,12 +159,9 @@ public class DetectFace extends Thread{
 		
 		frame.revalidate();
 	}
+
 	
-	public void run() {
-	       
-	}
-	
-	public static Mat detectEyes(Mat imageToDetect , CascadeClassifier classifier){
+	private static Mat detectEyes(Mat imageToDetect , CascadeClassifier classifier){
 		MatOfRect eyes = new MatOfRect();				
 		classifier.detectMultiScale(imageToDetect, eyes);
 		
@@ -193,5 +185,26 @@ public class DetectFace extends Thread{
 		}
 		
 		return currentEye;
+	}
+	
+	private static int[] detectPupils(Mat circles, Mat frameCapture){
+		
+		int[] coordinates = new int[]{0,0};
+		
+		for (int x = 0; x < circles.cols(); x++) {
+            double[] c = circles.get(0, x);
+            Point center = new Point(Math.round(c[0]), Math.round(c[1]));
+
+            Imgproc.circle(frameCapture, center, 1, new Scalar(0,100,100), 3, 8, 0 );
+            System.out.println(circles.cols());
+            
+            
+            coordinates = new int[]{(int)center.x, (int)center.y};
+            System.out.println((int)center.x + " " + (int)center.y);
+            //int radius = (int) Math.round(c[2]);
+            //Imgproc.circle(frameCapture, center, radius, new Scalar(255,0,255), 3, 8, 0 );
+        }
+        
+        return coordinates;	
 	}
 }
