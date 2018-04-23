@@ -4,13 +4,13 @@ import java.awt.Robot;
 public class MouseAutomator {
 			
 	public static void main(String[] args) {
-		try{
+		try{		
 			while(true){
 				int[] eyeLocations = DetectFace.startDetection();
 			
 				Robot wallE = new Robot();
 			
-				System.out.println(eyeLocations[0] + ", " + eyeLocations[1]);
+				//System.out.println(eyeLocations[0] + ", " + eyeLocations[1]);
 				wallE.mouseMove(eyeLocations[0], eyeLocations[1]);
 				
 			}

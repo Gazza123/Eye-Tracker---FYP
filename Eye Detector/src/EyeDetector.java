@@ -3,10 +3,12 @@ import java.awt.Image;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
+
 import javax.imageio.ImageIO;
 import javax.swing.ImageIcon;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
+
 import org.opencv.core.Core;
 import org.opencv.core.Mat;
 import org.opencv.core.MatOfByte;
@@ -14,14 +16,13 @@ import org.opencv.core.MatOfRect;
 import org.opencv.core.Point;
 import org.opencv.core.Rect;
 import org.opencv.core.Scalar;
-import org.opencv.core.Size;
 import org.opencv.imgcodecs.Imgcodecs;
 import org.opencv.imgproc.Imgproc;
 import org.opencv.objdetect.CascadeClassifier;
 import org.opencv.videoio.VideoCapture;
 
-public class DetectFace extends Thread{
- 
+public class EyeDetector {
+	
 	static JFrame frame;
 	static JLabel lbl;
 	static JLabel rightEyeLabel;
@@ -31,78 +32,74 @@ public class DetectFace extends Thread{
 	static ImageIcon rightEyeIcon;
 	static ImageIcon leftEyeIcon;	
 	
-	static Mat currentEye;
-	static MatOfRect eyes;
-	static MatOfByte byteMaterial;
-	static Mat frameCapture;
-	static Mat circles;
 	
-	public static int[] startDetection() {
-		int[] eyeCoordinates = null;
-		
+	
+	public static void main(String[] args) {
 		
 		System.loadLibrary(Core.NATIVE_LIBRARY_NAME);
 		
-
-	    CascadeClassifier eyeClassifier = new CascadeClassifier(
+		CascadeClassifier eyeClassifier = new CascadeClassifier(
 				"C:/opencv/build/etc/haarcascades/haarcascade_lefteye_2splits.xml");
-		
-		//Thread cameraThread = new Thread();
 		
 		VideoCapture videoDevice = new VideoCapture();
 		videoDevice.open(0);
+		
+		while(true) {
+			startDetection(videoDevice, eyeClassifier);
+		}
+	}
+	
+	
+	
+	public static int[] startDetection(VideoCapture videoDevice, CascadeClassifier eyeClassifier) {
+		int[] eyeCoordinates = null;
+		
+		
+		
+		videoDevice.open(0);
 		if (videoDevice.isOpened()) {
 			//while (true) {		 
-				frameCapture = new Mat();
+				Mat frameCapture = new Mat();
 				
 				videoDevice.read(frameCapture);
 				
-				
-				
-		        //Imgproc.Canny(zoomedMat, zoomedMat, 15, 15*3);
-				
-				//MatOfRect faces = new MatOfRect();
-				//cascadeFaceClassifier.detectMultiScale(frameCapture, faces);					
-				/*for (Rect rect : faces.toArray()) {					
-					Imgproc.putText(frameCapture, "Face", new Point(rect.x,rect.y-5), 1, 2, new Scalar(0,0,255));								
-					Imgproc.rectangle(frameCapture, new Point(rect.x, rect.y), new Point(rect.x + rect.width, rect.y + rect.height),
-							new Scalar(0, 100, 0),3);
 					
-					zoomedMat = new Mat(frameCapture, rect);
-				}*/
-														
+					
+				MatOfRect eyes = new MatOfRect();
+				eyeClassifier.detectMultiScale(frameCapture, eyes);
 				
-				detectEyes(frameCapture, eyeClassifier);				
+				Mat currentEye = null;
+				
+				for (Rect rect : eyes.toArray()) {				
+					
+					Imgproc.putText(frameCapture, "Eye", new Point(rect.x,rect.y-5), 1, 2, new Scalar(0,0,255));		
+					Point centerOfRect = new Point(rect.x + rect.width/2, rect.y + rect.height/2);
+										
+					Imgproc.rectangle(frameCapture, new Point(rect.x, rect.y), new Point(rect.x + rect.width, rect.y + rect.height),
+							new Scalar(200, 200, 100),2);	
+					
+					
+					//currentEye = frameCapture.adjustROI(rect.width/2, (rect.width/2)+rect.height, rect.height/2, (rect.height/2)+rect.width);
+					currentEye = frameCapture.submat(rect);
+					
+				}			
 				
 
-				//Mat gray = new Mat();
-		        //Imgproc.cvtColor(frameCapture, gray, Imgproc.COLOR_BGR2GRAY);
-		        //Imgproc.medianBlur(gray, gray, 5);
-		        circles = new Mat();
-		        Imgproc.cvtColor(frameCapture, frameCapture, Imgproc.COLOR_BGR2GRAY);
-		        Imgproc.medianBlur(frameCapture, frameCapture, 5);
-		        //Imgproc.Canny(frameCapture, frameCapture, 30.0f, 40.0f);
-		        Imgproc.HoughCircles(frameCapture, circles, Imgproc.HOUGH_GRADIENT, 1.0,
-		                (double)frameCapture.rows()/16, 
-		                100.0, 30.0, 1, 70 );
+				Imgproc.cvtColor(currentEye, currentEye, Imgproc.COLOR_BGR2GRAY);
+				Core.MinMaxLocResult mmG = Core.minMaxLoc(currentEye);
+				Imgproc.circle(currentEye, mmG.minLoc,2, new Scalar(255, 255, 255, 255),2);
+				
 
-		        eyeCoordinates = detectPupils(circles, frameCapture);
-				//Imgproc.cvtColor(frameCapture, edges, Imgproc.COLOR_BGR2GRAY);
-				//Size zoomedSize = new Size(500, 500);		        
-		        //Imgproc.resize(zoomedMat, zoomedMat, zoomedSize);
-		        
-		        //Imgproc.cvtColor(zoomedMat, zoomedMat,Imgproc.COLOR_RGB2GRAY );
-		        //Imgproc.Canny(zoomedMat, zoomedMat, 15, 15*3);
 		        
 		        
 				
-				PushImage(ConvertMat2Image(frameCapture));
+				PushImage(ConvertMat2Image(currentEye));
 				
-				currentEye.release();
-				eyes.release();
-				byteMaterial.release();
+				//videoDevice.release();
 				frameCapture.release();
-				circles.release();
+				currentEye.release();
+				
+				//eyes.release();
 				
 				return eyeCoordinates;
 				//System.out.println(String.format("%s face(FACES) %s eye(EYE) detected.", faces.toArray().length,eyes.toArray().length));
@@ -112,10 +109,11 @@ public class DetectFace extends Thread{
 			return new int[]{0,0};
 		}
 	}
+	
 	private static BufferedImage ConvertMat2Image(Mat cameraMaterial) {
 	
 		
-		byteMaterial = new MatOfByte();
+		MatOfByte byteMaterial = new MatOfByte();
 
 		Imgcodecs.imencode(".jpg", cameraMaterial, byteMaterial);
 		byte[] byteArray = byteMaterial.toArray();
@@ -127,6 +125,7 @@ public class DetectFace extends Thread{
 			e.printStackTrace();
 			return null;
 		}  
+		byteMaterial.release();
 		return buffImg;
 	}
   	
@@ -158,6 +157,7 @@ public class DetectFace extends Thread{
 		//rightEyeLabel.setIcon(rightEyeIcon);
 		//leftEyeLabel.setIcon(leftEyeIcon);
 		
+		
 		frame.add(lbl);
 		//frame.add(rightEyeLabel);
 		//frame.add(leftEyeLabel);
@@ -167,11 +167,11 @@ public class DetectFace extends Thread{
 
 	
 	private static Mat detectEyes(Mat imageToDetect , CascadeClassifier classifier){
-		eyes = new MatOfRect();		
+		MatOfRect eyes = new MatOfRect();		
 		
 		classifier.detectMultiScale(imageToDetect, eyes);
 		
-		currentEye = imageToDetect;
+		Mat currentEye = imageToDetect;
 		for (Rect rect : eyes.toArray()) {				
 			
 			Imgproc.putText(imageToDetect, "Eye", new Point(rect.x,rect.y-5), 1, 2, new Scalar(0,0,255));		
@@ -191,28 +191,5 @@ public class DetectFace extends Thread{
 		}
 		
 		return currentEye;
-	}
-	
-	private static int[] detectPupils(Mat circles, Mat frameCapture){
-		
-		
-		
-		int[] coordinates = new int[]{0,0};
-		
-		for (int x = 0; x < circles.cols(); x++) {
-            double[] c = circles.get(0, x);
-            Point center = new Point(Math.round(c[0]), Math.round(c[1]));
-
-            Imgproc.circle(frameCapture, center, 1, new Scalar(0,100,100), 3, 8, 0 );
-            System.out.println(circles.cols());
-            
-            
-            coordinates = new int[]{(int)center.x, (int)center.y};
-            System.out.println((int)center.x + " " + (int)center.y);
-            //int radius = (int) Math.round(c[2]);
-            //Imgproc.circle(frameCapture, center, radius, new Scalar(255,0,255), 3, 8, 0 );
-        }
-        
-        return coordinates;	
 	}
 }
