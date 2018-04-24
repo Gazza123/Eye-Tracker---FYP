@@ -45,7 +45,7 @@ public class DetectFace extends Thread{
 		
 
 	    CascadeClassifier eyeClassifier = new CascadeClassifier(
-				"C:/opencv/build/etc/haarcascades/haarcascade_lefteye_2splits.xml");
+				"C:/Users/t00181299/Downloads/opencv/build/etc/haarcascades/haarcascade_lefteye_2splits.xml");
 		
 		//Thread cameraThread = new Thread();
 		

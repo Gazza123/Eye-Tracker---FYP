@@ -6,6 +6,7 @@ import java.io.InputStream;
 
 import javax.imageio.ImageIO;
 import javax.swing.ImageIcon;
+import javax.swing.JButton;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 
@@ -27,33 +28,42 @@ public class EyeTester {
 	static JLabel rightEyeLabel;
 	static JLabel leftEyeLabel;
 	
+	static JButton calibrateTopLeft = new JButton("Top Left");
+	static JButton calibrateBottRight = new JButton("Bottom Right");
+	static JButton startButton = new JButton("Start Tracking");
+	
 	static ImageIcon icon;
 	static ImageIcon rightEyeIcon;
 	static ImageIcon leftEyeIcon;	
 	
+	static Point topLeftPoint = null;
+	static Point bottRightPoint = null;
 	
+	static boolean drawAOI = false;
+	static int[] lastKnownLocation;
 	
-	public static void main(String[] args) {
+	public static VideoCapture startCamera() {
 		
 		System.loadLibrary(Core.NATIVE_LIBRARY_NAME);
 		VideoCapture videoDevice = new VideoCapture();
-		
-		CascadeClassifier eyeClassifier = new CascadeClassifier(
-				"C:/opencv/build/etc/haarcascades/haarcascade_lefteye_2splits.xml");
-		
+	
 		videoDevice.open(0);
 		
-		while(true) {
-			startDetection(videoDevice, eyeClassifier);
-		}
+		return videoDevice;
 	}
 	
+	public static CascadeClassifier loadClassifier(){
+		CascadeClassifier eyeClassifier = new CascadeClassifier(
+				"C:/Users/t00181299/Downloads/opencv/build/etc/haarcascades/haarcascade_lefteye_2splits.xml");
+		
+		return eyeClassifier;
+	}
 	
-	public static void startDetection(VideoCapture videoDevice, CascadeClassifier eyeClassifier) {
+	public static int[] startDetection(VideoCapture videoDevice, CascadeClassifier eyeClassifier) {
 			
 			
 		if (videoDevice.isOpened()) {
-	 
+			try{
 				Mat frameCapture = new Mat();
 				
 				videoDevice.read(frameCapture);
@@ -78,19 +88,56 @@ public class EyeTester {
 				
 				Imgproc.cvtColor(currentEye, currentEye, Imgproc.COLOR_BGR2GRAY);
 				Core.MinMaxLocResult mmG = Core.minMaxLoc(currentEye);
-				Imgproc.circle(currentEye, mmG.minLoc,2, new Scalar(255, 255, 255, 255),2);
 				
+				Point eyeLocation = mmG.minLoc;
+				int[] eyeCoordinates = new int[]{(int)eyeLocation.x, (int)eyeLocation.y};
+				
+				Imgproc.circle(currentEye, eyeLocation,2, new Scalar(255, 255, 255, 255),2);
+
+				lastKnownLocation = new int[]{(int)eyeLocation.x, (int)eyeLocation.y};
+				
+				
+				if(calibrateTopLeft.getModel().isPressed()){
+					topLeftPoint = new Point(eyeLocation.x, eyeLocation.y);
+					System.out.print("\nTop Left Position: " + topLeftPoint.x + ", " + topLeftPoint.y);					
+					calibrateTopLeft.setVisible(false);
+				}
+				
+				if(calibrateBottRight.getModel().isPressed()){
+					bottRightPoint = new Point(eyeLocation.x, eyeLocation.y);
+					System.out.print("\nBottom Right Position: " + bottRightPoint.x + ", " + bottRightPoint.y);				
+					calibrateBottRight.setVisible(false);
+				}
+				
+				if(startButton.getModel().isPressed()){
+					drawAOI = true;
+					Imgproc.rectangle(currentEye, topLeftPoint, bottRightPoint, new Scalar(200, 200, 100));
+					startButton.setVisible(false);
+				}
 				
 				PushImage(ConvertMat2Image(currentEye));
 			
 				frameCapture.release();
 				currentEye.release();
 
+				return eyeCoordinates;
+			} catch(Exception e){
+				System.out.println("No Eyes Found");
+				return lastKnownLocation;
+			}
 		} else {
-			System.out.println("Video device did not open");			
+			System.out.println("Video device did not open");		
+			return lastKnownLocation;
 		}
 	}
 	
+	public static boolean startTracking(){
+		if(drawAOI){
+			return true;
+		}
+		
+		else return false;
+	}
 	
 	private static BufferedImage ConvertMat2Image(Mat cameraMaterial) {
 	
@@ -116,7 +163,10 @@ public class EyeTester {
 		frame = new JFrame();
 		frame.setLayout(new FlowLayout());
 		frame.setSize(700, 600);
-		frame.setVisible(true);
+		frame.setVisible(true);	
+		frame.add(calibrateTopLeft);
+		frame.add(calibrateBottRight);
+		frame.add(startButton);
 		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);	
 		
 	}
