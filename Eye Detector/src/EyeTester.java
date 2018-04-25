@@ -3,6 +3,7 @@ import java.awt.Image;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
+import java.util.ArrayList;
 
 import javax.imageio.ImageIO;
 import javax.swing.ImageIcon;
@@ -39,8 +40,13 @@ public class EyeTester {
 	static Point topLeftPoint = null;
 	static Point bottRightPoint = null;
 	
+	static Point eyePoint = new Point(0, 0);
+	
 	static boolean drawAOI = false;
 	static int[] lastKnownLocation;
+	
+	static ArrayList<Integer> xList = new ArrayList<Integer>();
+	static ArrayList<Integer> yList = new ArrayList<Integer>();
 	
 	public static VideoCapture startCamera() {
 		
@@ -82,37 +88,47 @@ public class EyeTester {
 					Imgproc.rectangle(frameCapture, new Point(rect.x, rect.y), new Point(rect.x + rect.width, rect.y + rect.height),
 							new Scalar(200, 200, 100),2);		
 					
-					currentEye = frameCapture.submat(rect);					
+					currentEye = frameCapture.submat(rect);		
+					
+					
 				}	
 				
-				
 				Imgproc.cvtColor(currentEye, currentEye, Imgproc.COLOR_BGR2GRAY);
-				Core.MinMaxLocResult mmG = Core.minMaxLoc(currentEye);
-				
+				Core.MinMaxLocResult mmG = Core.minMaxLoc(currentEye);				
 				Point eyeLocation = mmG.minLoc;
-				int[] eyeCoordinates = new int[]{(int)eyeLocation.x, (int)eyeLocation.y};
 				
-				Imgproc.circle(currentEye, eyeLocation,2, new Scalar(255, 255, 255, 255),2);
-
+				
 				lastKnownLocation = new int[]{(int)eyeLocation.x, (int)eyeLocation.y};
 				
 				
+				smoothEyePoint(currentEye, eyeLocation);
+				
+				int[] eyeCoordinates = new int[]{(int)eyePoint.x, (int)eyePoint.y};
+				
+				
+				Imgproc.circle(currentEye, eyePoint, 2, new Scalar(255, 255, 255, 255),2);
+				
+				
+				
 				if(calibrateTopLeft.getModel().isPressed()){
-					topLeftPoint = new Point(eyeLocation.x, eyeLocation.y);
+					topLeftPoint = new Point(eyePoint.x, eyePoint.y);
 					System.out.print("\nTop Left Position: " + topLeftPoint.x + ", " + topLeftPoint.y);					
 					calibrateTopLeft.setVisible(false);
 				}
 				
 				if(calibrateBottRight.getModel().isPressed()){
-					bottRightPoint = new Point(eyeLocation.x, eyeLocation.y);
+					bottRightPoint = new Point(eyePoint.x, eyePoint.y);
 					System.out.print("\nBottom Right Position: " + bottRightPoint.x + ", " + bottRightPoint.y);				
 					calibrateBottRight.setVisible(false);
 				}
 				
 				if(startButton.getModel().isPressed()){
-					drawAOI = true;
-					Imgproc.rectangle(currentEye, topLeftPoint, bottRightPoint, new Scalar(200, 200, 100));
+					drawAOI = true;					
 					startButton.setVisible(false);
+				}
+				
+				if(drawAOI){
+					Imgproc.rectangle(currentEye, topLeftPoint, bottRightPoint, new Scalar(200, 200, 100));
 				}
 				
 				PushImage(ConvertMat2Image(currentEye));
@@ -129,6 +145,58 @@ public class EyeTester {
 			System.out.println("Video device did not open");		
 			return lastKnownLocation;
 		}
+	}
+	
+	public static void smoothEyePoint(Mat currentEye, Point point){
+		
+		
+		xList.add((int)point.x);
+		yList.add((int)point.y);
+		int smoothingRate = 5;
+		int maxJumpDistance = 7;
+		
+		int previousX = 0;
+		int previousY = 0;
+		
+		if((xList.size()==smoothingRate) && (yList.size()==smoothingRate)){
+			int xSum = 0, ySum = 0;
+			
+			for(int x : xList){
+				xSum += x;
+			}
+			
+			xSum = (int)(xSum/smoothingRate);
+			xList.clear();
+			
+			for(int y : yList){
+				ySum += y;
+			}
+			
+			ySum = (int)(ySum/smoothingRate);
+			yList.clear();
+			
+			if((previousX != 0) && (previousY != 0)){
+				if(((xSum - previousX) > maxJumpDistance) || ((xSum - previousX) < maxJumpDistance)){
+					xSum = previousX;
+					ySum = previousY;
+				} else {
+					if(((ySum - previousY) > maxJumpDistance) || ((ySum - previousY) < maxJumpDistance)){
+						xSum = previousX;
+						ySum = previousY;
+					}
+				}
+			}
+			
+			previousX = xSum;
+			previousY = ySum;
+			
+			Point pointToDraw = new Point(xSum, ySum);
+			System.out.print(pointToDraw.x + ", " + pointToDraw.y + "\n");
+			eyePoint = pointToDraw;
+		} 
+		
+		
+		
 	}
 	
 	public static boolean startTracking(){
