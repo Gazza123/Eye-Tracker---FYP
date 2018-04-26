@@ -47,6 +47,7 @@ public class EyeTester {
 	
 	static ArrayList<Integer> xList = new ArrayList<Integer>();
 	static ArrayList<Integer> yList = new ArrayList<Integer>();
+	private static double jumpThreshold = 7;
 	
 	public static VideoCapture startCamera() {
 		
@@ -101,7 +102,7 @@ public class EyeTester {
 				lastKnownLocation = new int[]{(int)eyeLocation.x, (int)eyeLocation.y};
 				
 				
-				smoothEyePoint(currentEye, eyeLocation);
+				smoothEyePoint( eyeLocation);
 				
 				int[] eyeCoordinates = new int[]{(int)eyePoint.x, (int)eyePoint.y};
 				
@@ -147,58 +148,54 @@ public class EyeTester {
 		}
 	}
 	
-	public static void smoothEyePoint(Mat currentEye, Point point){
+	public static void smoothEyePoint( Point newPoint){
 		
 		
-		xList.add((int)point.x);
-		yList.add((int)point.y);
-		int smoothingRate = 5;
+		xList.add((int)newPoint.x);
+		yList.add((int)newPoint.y);
+		
+		int smoothingRate = 10;
 		int maxJumpDistance = 7;
 		
 		int previousX = 0;
 		int previousY = 0;
 		
-		if((xList.size()==smoothingRate) && (yList.size()==smoothingRate)){
-			int xSum = 0, ySum = 0;
-			
-			for(int x : xList){
-				xSum += x;
+		if (xList.size() > smoothingRate)
+		{   if (distanceNotTooBig(newPoint,eyePoint) )
+			{eyePoint.x +=  ( newPoint.x - xList.get(0)  ) / smoothingRate;
+			eyePoint.y += ( newPoint.y - yList.get(0)  ) / smoothingRate;
+			xList.remove(0);
+			yList.remove(0);
 			}
+		else {
 			
-			xSum = (int)(xSum/smoothingRate);
-			xList.clear();
+			xList.remove(smoothingRate);
+			yList.remove(smoothingRate);
 			
-			for(int y : yList){
-				ySum += y;
-			}
+		}
 			
-			ySum = (int)(ySum/smoothingRate);
-			yList.clear();
-			
-			if((previousX != 0) && (previousY != 0)){
-				if(((xSum - previousX) > maxJumpDistance) || ((xSum - previousX) < maxJumpDistance)){
-					xSum = previousX;
-					ySum = previousY;
-				} else {
-					if(((ySum - previousY) > maxJumpDistance) || ((ySum - previousY) < maxJumpDistance)){
-						xSum = previousX;
-						ySum = previousY;
-					}
-				}
-			}
-			
-			previousX = xSum;
-			previousY = ySum;
-			
-			Point pointToDraw = new Point(xSum, ySum);
-			System.out.print(pointToDraw.x + ", " + pointToDraw.y + "\n");
-			eyePoint = pointToDraw;
-		} 
+		}
 		
-		
+		else
+			if (xList.size() == 1)
+			{
+				eyePoint = newPoint;
+				
+			}
+			else 
+			{   float n = xList.size() - 1;
+				eyePoint.x = (n * eyePoint.x + newPoint.x)/ (n+1);
+				eyePoint.y = (n * eyePoint.y + newPoint.y)/ (n+1);
+			
+			}		
 		
 	}
 	
+	private static boolean distanceNotTooBig(Point newPoint, Point eyePoint2) {
+		double dist = Math.sqrt((newPoint.x - eyePoint2.x) *(newPoint.x - eyePoint2.x)  +  (newPoint.y - eyePoint2.y) *(newPoint.y - eyePoint2.y) );
+		return true;
+	}
+
 	public static boolean startTracking(){
 		if(drawAOI){
 			return true;
