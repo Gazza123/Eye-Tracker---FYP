@@ -18,6 +18,7 @@ import org.opencv.core.MatOfRect;
 import org.opencv.core.Point;
 import org.opencv.core.Rect;
 import org.opencv.core.Scalar;
+import org.opencv.core.Size;
 import org.opencv.imgcodecs.Imgcodecs;
 import org.opencv.imgproc.Imgproc;
 import org.opencv.objdetect.CascadeClassifier;
@@ -90,7 +91,8 @@ public class EyeTester {
 							new Scalar(200, 200, 100),2);		
 					
 					currentEye = frameCapture.submat(rect);		
-					
+					Size size = new Size(250, 250);
+					Imgproc.resize(currentEye, currentEye, size);
 					
 				}	
 				
@@ -109,7 +111,7 @@ public class EyeTester {
 				
 				Imgproc.circle(currentEye, eyePoint, 2, new Scalar(255, 255, 255, 255),2);
 				
-				
+				System.out.println(eyePoint.x + ", " + eyePoint.y);
 				
 				if(calibrateTopLeft.getModel().isPressed()){
 					topLeftPoint = new Point(eyePoint.x, eyePoint.y);
@@ -193,6 +195,7 @@ public class EyeTester {
 	
 	private static boolean distanceNotTooBig(Point newPoint, Point eyePoint2) {
 		double dist = Math.sqrt((newPoint.x - eyePoint2.x) *(newPoint.x - eyePoint2.x)  +  (newPoint.y - eyePoint2.y) *(newPoint.y - eyePoint2.y) );
+		//System.out.println(dist);
 		return true;
 	}
 
@@ -227,7 +230,7 @@ public class EyeTester {
 	private static void prepareWindow() {
 		frame = new JFrame();
 		frame.setLayout(new FlowLayout());
-		frame.setSize(700, 600);
+		frame.setSize(700, 300);
 		frame.setVisible(true);	
 		frame.add(calibrateTopLeft);
 		frame.add(calibrateBottRight);
