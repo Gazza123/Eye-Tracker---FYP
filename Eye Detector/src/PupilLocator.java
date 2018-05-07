@@ -48,6 +48,8 @@ public class PupilLocator {
 	
 	static ArrayList<Integer> xList = new ArrayList<Integer>();
 	static ArrayList<Integer> yList = new ArrayList<Integer>();
+	
+	
 	public static VideoCapture startCamera() {
 		
 		System.loadLibrary(Core.NATIVE_LIBRARY_NAME);
@@ -58,12 +60,14 @@ public class PupilLocator {
 		return videoDevice;
 	}
 	
+	
 	public static CascadeClassifier loadClassifier(){
 		CascadeClassifier eyeClassifier = new CascadeClassifier(
 				"resources/haarcascade_lefteye_2splits.xml");
 		
 		return eyeClassifier;
 	}
+	
 	
 	public static int[] startDetection(VideoCapture videoDevice, CascadeClassifier eyeClassifier) {
 			
@@ -91,9 +95,10 @@ public class PupilLocator {
 					Imgproc.resize(currentEye, currentEye, size);
 					Core.flip(currentEye, currentEye, 1);
 					
-					Imgproc.rectangle(currentEye, new Point(120, 75), new Point(220, 145),
-							new Scalar(200, 200, 100),2);
-				}	
+					//Imgproc.rectangle(currentEye, new Point(120, 75), new Point(220, 145),
+						//	new Scalar(200, 200, 100),2);
+				}					
+				
 				
 				Imgproc.cvtColor(currentEye, currentEye, Imgproc.COLOR_BGR2GRAY);
 				Core.MinMaxLocResult mmG = Core.minMaxLoc(currentEye);				
@@ -114,13 +119,11 @@ public class PupilLocator {
 				
 				if(calibrateTopLeft.getModel().isPressed()){
 					topLeftPoint = new Point(eyePoint.x, eyePoint.y);
-					//System.out.print("\nTop Left Position: " + topLeftPoint.x + ", " + topLeftPoint.y);					
 					calibrateTopLeft.setVisible(false);
 				}
 				
 				if(calibrateBottRight.getModel().isPressed()){
-					bottRightPoint = new Point(eyePoint.x, eyePoint.y);
-					//System.out.print("\nBottom Right Position: " + bottRightPoint.x + ", " + bottRightPoint.y);				
+					bottRightPoint = new Point(eyePoint.x, eyePoint.y);								
 					calibrateBottRight.setVisible(false);
 				}
 				
@@ -149,6 +152,7 @@ public class PupilLocator {
 		}
 	}
 	
+	
 	public static void smoothEyePoint( Point newPoint){
 		
 		
@@ -158,10 +162,11 @@ public class PupilLocator {
 		int smoothingRate = 10;
 		if (xList.size() > smoothingRate)
 		{   if (distanceNotTooBig(newPoint,eyePoint) )
-			{eyePoint.x +=  ( newPoint.x - xList.get(0)  ) / smoothingRate;
-			eyePoint.y += ( newPoint.y - yList.get(0)  ) / smoothingRate;
-			xList.remove(0);
-			yList.remove(0);
+			{
+				eyePoint.x +=  ( newPoint.x - xList.get(0)  ) / smoothingRate;
+				eyePoint.y += ( newPoint.y - yList.get(0)  ) / smoothingRate;
+				xList.remove(0);
+				yList.remove(0);
 			}
 		else {
 			
@@ -187,9 +192,10 @@ public class PupilLocator {
 		
 	}
 	
+	
 	private static boolean distanceNotTooBig(Point newPoint, Point eyePoint2) {
+		//issues found with this method, returns true until fixed
 		double dist = Math.sqrt((newPoint.x - eyePoint2.x) *(newPoint.x - eyePoint2.x)  +  (newPoint.y - eyePoint2.y) *(newPoint.y - eyePoint2.y) );
-		//System.out.println(dist);
 		return true;
 	}
 
@@ -201,9 +207,9 @@ public class PupilLocator {
 		else return false;
 	}
 	
-	private static BufferedImage ConvertMat2Image(Mat cameraMaterial) {
 	
-		
+	private static BufferedImage ConvertMat2Image(Mat cameraMaterial) {
+			
 		MatOfByte byteMaterial = new MatOfByte();
 
 		Imgcodecs.imencode(".jpg", cameraMaterial, byteMaterial);
